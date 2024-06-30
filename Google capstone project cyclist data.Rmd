@@ -1,0 +1,131 @@
+---
+title: "Google Capstone Project Cyclist data"
+author: "Samay Jain"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Importing the data sets
+```{r, message = FALSE}
+setwd("C:/Users/HP/Downloads/Capstone project/cyclist data")
+Apr_22 = read_csv("202204-divvy-tripdata.csv")
+May_22 = read_csv("202205-divvy-tripdata.csv")
+Jun_22 = read_csv("202206-divvy-tripdata.csv")
+Jul_22 = read_csv("202207-divvy-tripdata.csv")
+Aug_22 = read_csv("202208-divvy-tripdata.csv")
+Sep_22 = read_csv("202209-divvy-publictripdata.csv")
+Oct_22 = read_csv("202210-divvy-tripdata.csv")
+Nov_22 = read_csv("202211-divvy-tripdata.csv")
+Dec_22 = read_csv("202212-divvy-tripdata.csv")
+Jan_23 = read_csv("202301-divvy-tripdata.csv")
+Feb_23 = read_csv("202302-divvy-tripdata.csv")
+Mar_23 = read_csv("202303-divvy-tripdata.csv")
+```
+
+# Combining the data frame
+```{r, message = FALSE}
+Merged_data <- rbind(Apr_22, May_22, Jun_22, Jul_22, Aug_22, Sep_22, Oct_22, Nov_22, Dec_22, Jan_23, Feb_23, Mar_23 )
+```
+
+# Viewing The data set
+```{r}
+head(Merged_data)
+```
+
+# Renaming the Columns
+```{r}
+colnames(Merged_data)[1] <- "Ride_ID"
+colnames(Merged_data)[2] <- "Bike_type"
+colnames(Merged_data)[3] <- "Start_time"
+colnames(Merged_data)[4] <- "End_time"
+colnames(Merged_data)[13] <- "Member_type"
+```
+
+# Mutating the columns
+```{r}
+Merged_data$Ride_time <- difftime(Merged_data$End_time, Merged_data$Start_time, units = "mins")
+Merged_data$Day <- weekdays(Merged_data$Start_time)
+Merged_data$Month <- format(as.Date(Merged_data$Start_time), "%m")
+Merged_data$Hour <- format(Merged_data$Start_time, "%H")
+Merged_data$Distance <- (sqrt((Merged_data$end_lat - Merged_data$start_lat)**2 + (Merged_data$end_lng - Merged_data$start_lng)**2))*111
+```
+
+
+## Dropping Extra columns
+```{r}
+Merged_data <- Merged_data[, -c(6, 8)]
+```
+
+# Structure of data
+```{r}
+str(Merged_data)
+```
+
+# Performing data type conversion
+```{r}
+Merged_data$Bike_type <- factor(Merged_data$Bike_type, levels = c("electric_bike", "classic_bike", "docked_bike"), 
+                                 labels = c("Electric", "Classic", "Docked"))
+Merged_data$Member_type <- factor(Merged_data$Member_type, levels = c("member", "casual"), labels = c("Member", "Casual"))
+#Merged_data$Month <- factor(Merged_data$Month, levels = c("01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"), labels = c("Jan", #"Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+```
+
+
+# Scanning data for inconsistencies
+```{r}
+summary(as.numeric(Merged_data$Ride_time))
+sd(Merged_data$Ride_time)
+summary(as.numeric(Merged_data$Distance))
+sd(Merged_data$Distance, na.rm = TRUE)
+
+```
+
+# Calculating outliers range for variables (3rd quartile - 1st quartile +- 1.25(std dev.))
+```{r}
+outlier_Ride_time <- 18.02 - 5.68 + 1.25*173.7513
+outlier_Distance <- 3.140 - 1.029 + 1.25*12.83396
+outlier_Ride_time
+outlier_Distance 
+```
+
+# Removing outliers and inconsistencies(if any) from the data set
+```{r}
+Merged_data <- Merged_data[Merged_data$Ride_time > 0 & Merged_data$Ride_time < 230, ]
+Merged_data <- Merged_data[Merged_data$Distance > 0 & Merged_data$Distance < 18.5, ]
+Merged_data <- na.omit(Merged_data)
+```
+
+# Checking for any inconsistencies
+```{r}
+summary(as.numeric(Merged_data$Ride_time))
+sd(Merged_data$Ride_time)
+summary(as.numeric(Merged_data$Distance))
+sd(Merged_data$Distance, na.rm = TRUE)
+```
+
+# Saving the data file
+#```{r}
+#write.csv(Merged_data, file = "Merged_Data.csv", row.names = FALSE)
+#```
+
+```{r}
+#write.xlsx(Merged_data, file = "Merged_Data1.xlsx", rowNames = FALSE)
+```
+
+# Visualization
+#```{r}
+#Member_character <- as.character(Merged_data$member_casual)
+#Member_type <- table(Member_character)
+#barplot(Member_type)
+#```
+#```{r}
+#Merged_data %>% ggplot(Member_character, aes(x = Day, fill = Member_character)) +
+#  geom_bar(stat = "identity", position = "dodge") +
+#  labs(title = "Number of Riders on Each Day", x = "Day") +
+#  scale_fill_manual(values = c("blue", "red"), labels = c("Member", "Casual"))
+#```
